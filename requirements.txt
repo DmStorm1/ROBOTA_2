@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pytest
+requests
+httpx
+feedparser
+vaderSentiment
+

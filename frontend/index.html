@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Дашборд новин</title>
+  <!-- Підключаємо стилі -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Chart.js з CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Дашборд новин</h1>
+  <label for="filter-select">Фільтр тональності:</label>
+  <select id="filter-select">
+    <option value="all">Усі</option>
+    <option value="positive">Позитивні</option>
+    <option value="neutral">Нейтральні</option>
+    <option value="negative">Негативні</option>
+  </select>
+
+  <!-- Контейнер для діаграми -->
+  <div class="chart-container">
+    <canvas id="sentiment-chart"></canvas>
+  </div>
+
+  <!-- Таблиця для статей -->
+  <table id="articles-table">
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Тональність</th>
+        <th>Заголовок</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Визначаємо константи для API і студента -->
+  <script>
+    // Заміни це на свій справжній ID, що використовується на бекенді
+    const STUDENT_ID = "Svunarov_a651dc8b";
+    const API_BASE = "http://localhost:8000";
+  </script>
+
+  <!-- Підключаємо JS-логіку -->
+  <script src="main.js"></script>
+</body>
+</html>
