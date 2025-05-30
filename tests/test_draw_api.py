@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from backend.app import app
-from config import ROOM_ID
+
 
 client = TestClient(app)
 
