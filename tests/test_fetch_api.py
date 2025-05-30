@@ -1,19 +1,19 @@
 from fastapi.testclient import TestClient
-from backend.app import app, news_store, store
+from backend.app import app, news_store, sources_store
 from config import STUDENT_ID
 import feedparser
 
 client = TestClient(app)
 
 def test_get_news_empty():
-    store[STUDENT_ID] = []          # Додаємо пустий список джерел
-    news_store[STUDENT_ID] = []     # Порожні новини
+    sources_store[STUDENT_ID] = []      # Додаємо пустий список джерел
+    news_store[STUDENT_ID] = []         # Порожні новини
     res = client.get(f"/news/{STUDENT_ID}")
     assert res.status_code == 200
     assert res.json() == {"articles": []}
 
 def test_get_empty_sources():
-    store[STUDENT_ID] = []          # Ініціалізуємо пустий список джерел
+    sources_store[STUDENT_ID] = []      # Ініціалізуємо пустий список джерел
     res = client.get(f"/sources/{STUDENT_ID}")
     assert res.status_code == 200
     assert res.json() == {"sources": []}
@@ -29,8 +29,8 @@ def test_fetch_and_get(monkeypatch):
     monkeypatch.setattr("config.SOURCES", ["http://example.com/rss"])
     monkeypatch.setattr(feedparser, "parse", lambda url: DummyFeed)
 
-    store[STUDENT_ID] = ["http://example.com/rss"]   # Ініціалізуємо джерела для студента
-    news_store[STUDENT_ID] = []                       # Очищаємо новини
+    sources_store[STUDENT_ID] = ["http://example.com/rss"]   # Ініціалізуємо джерела для студента
+    news_store[STUDENT_ID] = []                               # Очищаємо новини
 
     res1 = client.post(f"/fetch/{STUDENT_ID}")
     assert res1.status_code == 200
