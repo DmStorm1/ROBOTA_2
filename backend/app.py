@@ -7,7 +7,6 @@ import config
 from config import STUDENT_ID
 
 
-
 app = FastAPI()
 
 # --- CORS ---
@@ -48,9 +47,18 @@ async def load_initial_sources() -> None:
 # --- Аналізатор ---
 analyzer = SentimentIntensityAnalyzer()
 
-# --- Модель ---
+# --- Моделі ---
 class SourcePayload(BaseModel):
     url: str
+
+class DrawCommand(BaseModel):
+    x: int
+    y: int
+    type: str
+
+class FilterPayload(BaseModel):
+    image_data: list
+    filter_name: str
 
 # --- Джерела ---
 @app.get("/sources/{student_id}")
@@ -66,10 +74,10 @@ def add_source(student_id: str, payload: SourcePayload):
 
     url = payload.url.strip()
     if not url:
-        raise HTTPException(status_code=400, detail="URL is required")
+        raise HTTPException(status_code=404, detail="URL is required")
 
     if url in store[student_id]:
-        raise HTTPException(status_code=400, detail="URL already exists")
+        raise HTTPException(status_code=404, detail="URL already exists")
 
     store[student_id].append(url)
     return {"sources": store[student_id]}
@@ -124,3 +132,23 @@ def analyze_tone(student_id: str):
         result.append({**art, "sentiment": label, "scores": scores})
 
     return {"analyzed": len(result), "articles": result}
+
+# --- Малювання ---
+@app.post("/draw/{student_id}")
+def draw_command(student_id: str, cmd: DrawCommand):
+    if student_id not in store:
+        store[student_id] = []
+    store[student_id].append(cmd.dict())
+    return {"status": "ok"}
+
+@app.get("/draw/{student_id}")
+def get_drawings(student_id: str):
+    if student_id not in store:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return {"commands": store[student_id]}
+
+# --- Фільтрація зображень ---
+@app.post("/filter/{student_id}")
+def apply_filter(student_id: str, payload: FilterPayload):
+    # Просто повертаємо image_data назад (заглушка)
+    return {"image_data": payload.image_data}
