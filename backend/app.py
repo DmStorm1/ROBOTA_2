@@ -1,12 +1,11 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import config
 from config import STUDENT_ID
-
-# це тестовий коміт для запуску CI
+from contextlib import asynccontextmanager
 
 app = FastAPI()
 
@@ -35,21 +34,20 @@ fake_users_db = {
     }
 }
 
-# Для зберігання "намальованого" для кожного room_id
-draw_store = {}
-
-# Для зберігання "фільтрованих" даних (можна не використовувати, але для прикладу зробимо)
-filter_store = {}
-
-# --- Startup: автозавантаження джерел ---
-@app.on_event("startup")
-async def load_initial_sources() -> None:
+# --- Lifespan: заміна @app.on_event("startup") ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Завантаження початкових джерел при запуску
     student_id = getattr(config, "STUDENT_ID", None)
-    sources    = getattr(config, "SOURCES", [])
+    sources = getattr(config, "SOURCES", [])
     if student_id and isinstance(sources, list):
         store[student_id] = list(sources)
         news_store[student_id] = []
-        print(f"[startup] loaded {len(sources)} feeds for {student_id}")
+        print(f"[lifespan startup] loaded {len(sources)} feeds for {student_id}")
+    yield
+    # Тут можна додати код для "shutdown", якщо потрібно
+
+app = FastAPI(lifespan=lifespan)
 
 # --- Аналізатор ---
 analyzer = SentimentIntensityAnalyzer()
@@ -130,24 +128,3 @@ def analyze_tone(student_id: str):
         result.append({**art, "sentiment": label, "scores": scores})
 
     return {"analyzed": len(result), "articles": result}
-
-
-# --- Додані ендпоінти для тестів ---
-
-@app.post("/draw/{room_id}")
-def draw(room_id: str, cmd: dict = Body(...)):
-    if room_id not in draw_store:
-        draw_store[room_id] = []
-    draw_store[room_id].append(cmd)
-    return {"status": "ok"}
-
-@app.get("/draw/{room_id}")
-def get_draw(room_id: str):
-    if room_id not in draw_store:
-        return []
-    return draw_store[room_id]
-
-@app.post("/filter/{room_id}")
-def apply_filter(room_id: str, payload: dict = Body(...)):
-    # Просто повертаємо ті ж дані, що прийшли, щоб тест пройшов
-    return {"image_data": payload.get("image_data")}
