@@ -2,19 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   backend-tests:
-<<<<<<< HEAD
-    name: Backend: запуск тестів
-    runs-on: ubuntu-latest
-=======
     name: Backend запуск тестів
     runs-on: ubuntu-latest        # Відступ 4 пробіли від 'backend-tests:'
->>>>>>> 853045a (A)
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
