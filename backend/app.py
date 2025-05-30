@@ -1,12 +1,44 @@
-from fastapi import FastAPI, HTTPException, APIRouter
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import config
-from config import STUDENT_ID, ROOM_ID
+from config import STUDENT_ID
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+# --- Store ---
+store = {}
+news_store = {}
+fake_users_db = {
+    STUDENT_ID: {
+        "username": STUDENT_ID,
+        "full_name": STUDENT_ID,
+        "hashed_password": "password123",  # лише для тестування
+        "disabled": False,
+    }
+}
+
+# Для прикладу: якщо ти використовуєш ROOM_ID десь, визнач його
+ROOM_ID = "test_room"
+draw_store = {ROOM_ID: []}  # Приклад
+
+# --- Аналізатор ---
+analyzer = SentimentIntensityAnalyzer()
+
+# --- Lifespan: ініціалізація під час запуску ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    student_id = getattr(config, "STUDENT_ID", None)
+    if student_id and isinstance(getattr(config, "SOURCES", []), list):
+        store[student_id] = list(config.SOURCES)
+        news_store[student_id] = []
+        draw_store[ROOM_ID] = []
+        print(f"[lifespan] Loaded {len(config.SOURCES)} sources for {student_id}")
+    yield
+    # Тут можна додати код, що виконається при завершенні роботи, якщо треба
+
+app = FastAPI(lifespan=lifespan)
 
 # --- CORS ---
 origins = [
@@ -21,48 +53,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Stores ---
-store = {}
-news_store = {}
-draw_store = {}  # для зберігання малюнків по room_id
-
-# --- Fake users for demo ---
-fake_users_db = {
-    STUDENT_ID: {
-        "username": STUDENT_ID,
-        "full_name": STUDENT_ID,
-        "hashed_password": "password123",  # лише для тестування
-        "disabled": False,
-    }
-}
-
-# --- Startup: автозавантаження джерел ---
-@app.on_event("startup")
-async def load_initial_sources() -> None:
-    student_id = getattr(config, "STUDENT_ID", None)
-    sources    = getattr(config, "SOURCES", [])
-    if student_id and isinstance(sources, list):
-        store[student_id] = list(sources)
-        news_store[student_id] = []
-        draw_store[ROOM_ID] = []
-        print(f"[startup] loaded {len(sources)} feeds for {student_id}")
-        print(f"[startup] initialized draw_store for {ROOM_ID}")
-
-# --- Аналізатор ---
-analyzer = SentimentIntensityAnalyzer()
-
-# --- Моделі ---
+# --- Модель ---
 class SourcePayload(BaseModel):
     url: str
-
-class DrawCommand(BaseModel):
-    x: int
-    y: int
-    type: str
-
-class FilterPayload(BaseModel):
-    image_data: list
-    filter_name: str
 
 # --- Джерела ---
 @app.get("/sources/{student_id}")
@@ -136,27 +129,3 @@ def analyze_tone(student_id: str):
         result.append({**art, "sentiment": label, "scores": scores})
 
     return {"analyzed": len(result), "articles": result}
-
-# --- Draw API ---
-@app.post("/draw/{room_id}")
-def draw(room_id: str, cmd: DrawCommand):
-    if room_id not in draw_store:
-        draw_store[room_id] = []
-    draw_store[room_id].append(cmd.dict())
-    return {"status": "ok"}
-
-@app.get("/draw/{room_id}")
-def get_draw(room_id: str):
-    if room_id not in draw_store:
-        raise HTTPException(status_code=404, detail="Room not found")
-    return draw_store[room_id]
-
-# --- Filter API ---
-@app.post("/filter/{room_id}")
-def apply_filter(room_id: str, payload: FilterPayload):
-    # Просто повернемо ті ж дані для тесту
-    if room_id not in draw_store:
-        draw_store[room_id] = []  # ініціалізація, щоб не було 404
-    # Для простоти - повертаємо image_data без змін
-    return {"image_data": payload.image_data}
-
