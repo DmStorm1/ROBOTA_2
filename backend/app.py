@@ -23,8 +23,10 @@ app.add_middleware(
 )
 
 # --- Store ---
-store = {}
+sources_store = {}   # Окремо для джерел
+draw_store = {}      # Окремо для команд малювання
 news_store = {}
+
 fake_users_db = {
     STUDENT_ID: {
         "username": STUDENT_ID,
@@ -38,9 +40,9 @@ fake_users_db = {
 @app.on_event("startup")
 async def load_initial_sources() -> None:
     student_id = getattr(config, "STUDENT_ID", None)
-    sources    = getattr(config, "SOURCES", [])
+    sources = getattr(config, "SOURCES", [])
     if student_id and isinstance(sources, list):
-        store[student_id] = list(sources)
+        sources_store[student_id] = list(sources)
         news_store[student_id] = []
         print(f"[startup] loaded {len(sources)} feeds for {student_id}")
 
@@ -63,35 +65,35 @@ class FilterPayload(BaseModel):
 # --- Джерела ---
 @app.get("/sources/{student_id}")
 def get_sources(student_id: str):
-    if student_id not in store:
+    if student_id not in sources_store:
         raise HTTPException(status_code=404, detail="Student not found")
-    return {"sources": store[student_id]}
+    return {"sources": sources_store[student_id]}
 
 @app.post("/sources/{student_id}")
 def add_source(student_id: str, payload: SourcePayload):
-    if student_id not in store:
-        store[student_id] = []
+    if student_id not in sources_store:
+        sources_store[student_id] = []
 
     url = payload.url.strip()
     if not url:
         raise HTTPException(status_code=404, detail="URL is required")
 
-    if url in store[student_id]:
+    if url in sources_store[student_id]:
         raise HTTPException(status_code=404, detail="URL already exists")
 
-    store[student_id].append(url)
-    return {"sources": store[student_id]}
+    sources_store[student_id].append(url)
+    return {"sources": sources_store[student_id]}
 
 # --- Завантаження новин ---
 @app.post("/fetch/{student_id}")
 def fetch_news(student_id: str):
-    if student_id not in store:
+    if student_id not in sources_store:
         raise HTTPException(status_code=404, detail="Student not found")
 
     news_store[student_id] = []
     fetched = 0
 
-    for url in store.get(student_id, []):
+    for url in sources_store.get(student_id, []):
         feed = feedparser.parse(url)
         for entry in getattr(feed, "entries", []):
             news_store[student_id].append({
@@ -136,16 +138,16 @@ def analyze_tone(student_id: str):
 # --- Малювання ---
 @app.post("/draw/{student_id}")
 def draw_command(student_id: str, cmd: DrawCommand):
-    if student_id not in store:
-        store[student_id] = []
-    store[student_id].append(cmd.dict())
+    if student_id not in draw_store:
+        draw_store[student_id] = []
+    draw_store[student_id].append(cmd.dict())
     return {"status": "ok"}
 
 @app.get("/draw/{student_id}")
 def get_drawings(student_id: str):
-    if student_id not in store:
+    if student_id not in draw_store:
         raise HTTPException(status_code=404, detail="Student not found")
-    return {"commands": store[student_id]}
+    return {"commands": draw_store[student_id]}
 
 # --- Фільтрація зображень ---
 @app.post("/filter/{student_id}")
