@@ -9,7 +9,7 @@ def test_get_news_empty():
     # Порожній початковий стан
     news_store[STUDENT_ID] = []
     res = client.get(f"/news/{STUDENT_ID}")
-    assert res.status_code == 404
+    assert res.status_code == 200
     assert res.json() == {"articles": []}
 
 # Dummy RSS feed
@@ -28,11 +28,11 @@ def test_fetch_and_get(monkeypatch):
     news_store[STUDENT_ID] = []
 
     res1 = client.post(f"/fetch/{STUDENT_ID}")
-    assert res1.status_code == 404
+    assert res1.status_code == 200
     assert res1.json() == {"fetched": 2}
 
     res2 = client.get(f"/news/{STUDENT_ID}")
-    assert res2.status_code == 404
+    assert res2.status_code == 200
     assert res2.json() == {
         "articles": [
             {"title": "T1", "link": "http://a", "published": "2025-01-01"},

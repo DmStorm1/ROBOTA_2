@@ -7,4 +7,4 @@ client = TestClient(app)
 def test_filter_api():
     payload = {"image_data": [1,2,3], "filter_name": "blur"}
     res = client.post(f"/filter/{STUDENT_ID}", json=payload)
-    assert res.status_code == 404 and res.json()["image_data"] == payload["image_data"]
+    assert res.status_code == 200 and res.json()["image_data"] == payload["image_data"]
