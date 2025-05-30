@@ -5,40 +5,10 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import config
 from config import STUDENT_ID
-from contextlib import asynccontextmanager
 
-# --- Store ---
-store = {}
-news_store = {}
-fake_users_db = {
-    STUDENT_ID: {
-        "username": STUDENT_ID,
-        "full_name": STUDENT_ID,
-        "hashed_password": "password123",  # лише для тестування
-        "disabled": False,
-    }
-}
 
-# Для прикладу: якщо ти використовуєш ROOM_ID десь, визнач його
-ROOM_ID = "test_room"
-draw_store = {ROOM_ID: []}  # Приклад
 
-# --- Аналізатор ---
-analyzer = SentimentIntensityAnalyzer()
-
-# --- Lifespan: ініціалізація під час запуску ---
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    student_id = getattr(config, "STUDENT_ID", None)
-    if student_id and isinstance(getattr(config, "SOURCES", []), list):
-        store[student_id] = list(config.SOURCES)
-        news_store[student_id] = []
-        draw_store[ROOM_ID] = []
-        print(f"[lifespan] Loaded {len(config.SOURCES)} sources for {student_id}")
-    yield
-    # Тут можна додати код, що виконається при завершенні роботи, якщо треба
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 # --- CORS ---
 origins = [
@@ -52,6 +22,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Store ---
+store = {}
+news_store = {}
+fake_users_db = {
+    STUDENT_ID: {
+        "username": STUDENT_ID,
+        "full_name": STUDENT_ID,
+        "hashed_password": "password123",  # лише для тестування
+        "disabled": False,
+    }
+}
+
+# --- Startup: автозавантаження джерел ---
+@app.on_event("startup")
+async def load_initial_sources() -> None:
+    student_id = getattr(config, "STUDENT_ID", None)
+    sources    = getattr(config, "SOURCES", [])
+    if student_id and isinstance(sources, list):
+        store[student_id] = list(sources)
+        news_store[student_id] = []
+        print(f"[startup] loaded {len(sources)} feeds for {student_id}")
+
+# --- Аналізатор ---
+analyzer = SentimentIntensityAnalyzer()
 
 # --- Модель ---
 class SourcePayload(BaseModel):
