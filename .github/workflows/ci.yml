@@ -9,7 +9,7 @@ on:
 jobs:
   backend-tests:
     name: Backend запуск тестів
-    runs-on: ubuntu-latest        # Відступ 4 пробіли від 'backend-tests:'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -38,13 +38,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install http-server
-        run: npm install -g http-server
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'   # або потрібна тобі версія Node
+
+      - name: Install http-server locally
+        run: npm install http-server
 
       - name: Запустити локальний сервер фронтенду
         run: |
-          cd frontend
-          nohup http-server -p 8001 &
+          npx http-server frontend -p 8001 &
 
       - name: Перевірити доступність index.html
         run: |
