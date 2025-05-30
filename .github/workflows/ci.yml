@@ -9,7 +9,7 @@ on:
 jobs:
   backend-tests:
     name: Backend: запуск тестів
-    runs-on: ubuntu-latest        # Відступ 4 пробіли від 'backend-tests:'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
