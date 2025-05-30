@@ -1,11 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import feedparser
 import config
-from config import STUDENT_ID
-from contextlib import asynccontextmanager
+from config import STUDENT_ID, ROOM_ID
 
 app = FastAPI()
 
@@ -22,9 +21,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Store ---
+# --- Stores ---
 store = {}
 news_store = {}
+draw_store = {}  # для зберігання малюнків по room_id
+
+# --- Fake users for demo ---
 fake_users_db = {
     STUDENT_ID: {
         "username": STUDENT_ID,
@@ -34,27 +36,33 @@ fake_users_db = {
     }
 }
 
-# --- Lifespan: заміна @app.on_event("startup") ---
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Завантаження початкових джерел при запуску
+# --- Startup: автозавантаження джерел ---
+@app.on_event("startup")
+async def load_initial_sources() -> None:
     student_id = getattr(config, "STUDENT_ID", None)
-    sources = getattr(config, "SOURCES", [])
+    sources    = getattr(config, "SOURCES", [])
     if student_id and isinstance(sources, list):
         store[student_id] = list(sources)
         news_store[student_id] = []
-        print(f"[lifespan startup] loaded {len(sources)} feeds for {student_id}")
-    yield
-    # Тут можна додати код для "shutdown", якщо потрібно
-
-app = FastAPI(lifespan=lifespan)
+        draw_store[ROOM_ID] = []
+        print(f"[startup] loaded {len(sources)} feeds for {student_id}")
+        print(f"[startup] initialized draw_store for {ROOM_ID}")
 
 # --- Аналізатор ---
 analyzer = SentimentIntensityAnalyzer()
 
-# --- Модель ---
+# --- Моделі ---
 class SourcePayload(BaseModel):
     url: str
+
+class DrawCommand(BaseModel):
+    x: int
+    y: int
+    type: str
+
+class FilterPayload(BaseModel):
+    image_data: list
+    filter_name: str
 
 # --- Джерела ---
 @app.get("/sources/{student_id}")
@@ -128,3 +136,27 @@ def analyze_tone(student_id: str):
         result.append({**art, "sentiment": label, "scores": scores})
 
     return {"analyzed": len(result), "articles": result}
+
+# --- Draw API ---
+@app.post("/draw/{room_id}")
+def draw(room_id: str, cmd: DrawCommand):
+    if room_id not in draw_store:
+        draw_store[room_id] = []
+    draw_store[room_id].append(cmd.dict())
+    return {"status": "ok"}
+
+@app.get("/draw/{room_id}")
+def get_draw(room_id: str):
+    if room_id not in draw_store:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return draw_store[room_id]
+
+# --- Filter API ---
+@app.post("/filter/{room_id}")
+def apply_filter(room_id: str, payload: FilterPayload):
+    # Просто повернемо ті ж дані для тесту
+    if room_id not in draw_store:
+        draw_store[room_id] = []  # ініціалізація, щоб не було 404
+    # Для простоти - повертаємо image_data без змін
+    return {"image_data": payload.image_data}
+
