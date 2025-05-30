@@ -6,10 +6,8 @@ import feedparser
 import config
 from config import STUDENT_ID
 
-
 app = FastAPI()
 
-# --- CORS ---
 origins = [
     "http://localhost:8001",
     "http://127.0.0.1:8001",
@@ -22,21 +20,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Store ---
-sources_store = {}   # Окремо для джерел
-draw_store = {}      # Окремо для команд малювання
+sources_store = {}
+draw_store = {}
 news_store = {}
 
 fake_users_db = {
     STUDENT_ID: {
         "username": STUDENT_ID,
         "full_name": STUDENT_ID,
-        "hashed_password": "password123",  # лише для тестування
+        "hashed_password": "password123",
         "disabled": False,
     }
 }
 
-# --- Startup: автозавантаження джерел ---
 @app.on_event("startup")
 async def load_initial_sources() -> None:
     student_id = getattr(config, "STUDENT_ID", None)
@@ -46,10 +42,8 @@ async def load_initial_sources() -> None:
         news_store[student_id] = []
         print(f"[startup] loaded {len(sources)} feeds for {student_id}")
 
-# --- Аналізатор ---
 analyzer = SentimentIntensityAnalyzer()
 
-# --- Моделі ---
 class SourcePayload(BaseModel):
     url: str
 
@@ -62,7 +56,6 @@ class FilterPayload(BaseModel):
     image_data: list
     filter_name: str
 
-# --- Джерела ---
 @app.get("/sources/{student_id}")
 def get_sources(student_id: str):
     if student_id not in sources_store:
@@ -84,7 +77,6 @@ def add_source(student_id: str, payload: SourcePayload):
     sources_store[student_id].append(url)
     return {"sources": sources_store[student_id]}
 
-# --- Завантаження новин ---
 @app.post("/fetch/{student_id}")
 def fetch_news(student_id: str):
     if student_id not in sources_store:
@@ -105,14 +97,12 @@ def fetch_news(student_id: str):
 
     return {"fetched": fetched}
 
-# --- Отримання новин ---
 @app.get("/news/{student_id}")
 def get_news(student_id: str):
     if student_id not in news_store:
         raise HTTPException(status_code=404, detail="Student not found")
     return {"articles": news_store[student_id]}
 
-# --- Аналіз тональності ---
 @app.post("/analyze/{student_id}")
 def analyze_tone(student_id: str):
     if student_id not in news_store:
@@ -135,7 +125,6 @@ def analyze_tone(student_id: str):
 
     return {"analyzed": len(result), "articles": result}
 
-# --- Малювання ---
 @app.post("/draw/{student_id}")
 def draw_command(student_id: str, cmd: DrawCommand):
     if student_id not in draw_store:
@@ -149,8 +138,9 @@ def get_drawings(student_id: str):
         raise HTTPException(status_code=404, detail="Student not found")
     return {"commands": draw_store[student_id]}
 
-# --- Фільтрація зображень ---
 @app.post("/filter/{student_id}")
 def apply_filter(student_id: str, payload: FilterPayload):
-    # Просто повертаємо image_data назад (заглушка)
     return {"image_data": payload.image_data}
+
+# --- Додамо для імпорту в тестах ---
+__all__ = ["app", "news_store", "sources_store", "draw_store"]
