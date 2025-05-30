@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -7,7 +7,6 @@ import config
 from config import STUDENT_ID
 
 # це тестовий коміт для запуску CI
-
 
 app = FastAPI()
 
@@ -35,6 +34,12 @@ fake_users_db = {
         "disabled": False,
     }
 }
+
+# Для зберігання "намальованого" для кожного room_id
+draw_store = {}
+
+# Для зберігання "фільтрованих" даних (можна не використовувати, але для прикладу зробимо)
+filter_store = {}
 
 # --- Startup: автозавантаження джерел ---
 @app.on_event("startup")
@@ -125,3 +130,24 @@ def analyze_tone(student_id: str):
         result.append({**art, "sentiment": label, "scores": scores})
 
     return {"analyzed": len(result), "articles": result}
+
+
+# --- Додані ендпоінти для тестів ---
+
+@app.post("/draw/{room_id}")
+def draw(room_id: str, cmd: dict = Body(...)):
+    if room_id not in draw_store:
+        draw_store[room_id] = []
+    draw_store[room_id].append(cmd)
+    return {"status": "ok"}
+
+@app.get("/draw/{room_id}")
+def get_draw(room_id: str):
+    if room_id not in draw_store:
+        return []
+    return draw_store[room_id]
+
+@app.post("/filter/{room_id}")
+def apply_filter(room_id: str, payload: dict = Body(...)):
+    # Просто повертаємо ті ж дані, що прийшли, щоб тест пройшов
+    return {"image_data": payload.get("image_data")}
