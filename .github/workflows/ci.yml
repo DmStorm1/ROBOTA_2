@@ -45,7 +45,6 @@ jobs:
         run: |
           cd frontend
           nohup http-server -p 8001 &
-
       - name: Перевірити доступність index.html
         run: |
           sleep 2
