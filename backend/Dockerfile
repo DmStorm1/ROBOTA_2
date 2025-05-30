@@ -8,9 +8,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ---------- 4. Копіюємо код бекенду і конфігурацію ----------
+# ---------- 4. Копіюємо код бекенду, конфігурацію та .env ----------
 COPY backend/   ./
 COPY config.py  ./
+
 
 # ---------- 5. Відкриваємо порт для FastAPI ----------
 EXPOSE 8000
