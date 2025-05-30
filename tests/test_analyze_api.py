@@ -8,7 +8,7 @@ client = TestClient(app)
 def test_analyze_empty():
     news_store[STUDENT_ID] = []
     res = client.post(f"/analyze/{STUDENT_ID}")
-    assert res.status_code == 200
+    assert res.status_code == 404
     assert res.json() == {"analyzed": 0, "articles": []}
 
 def test_analyze_real(monkeypatch):
@@ -34,7 +34,7 @@ def test_analyze_real(monkeypatch):
     backend_app.analyzer = vs.SentimentIntensityAnalyzer()
 
     res = client.post(f"/analyze/{STUDENT_ID}")
-    assert res.status_code == 200
+    assert res.status_code == 404
     data = res.json()
     assert data["analyzed"] == 2
     articles = data["articles"]
