@@ -6,6 +6,9 @@ import feedparser
 import config
 from config import STUDENT_ID
 
+# це тестовий коміт для запуску CI
+
+
 app = FastAPI()
 
 # --- CORS ---

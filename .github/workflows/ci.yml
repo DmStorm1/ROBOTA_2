@@ -8,8 +8,13 @@ on:
 
 jobs:
   backend-tests:
+<<<<<<< HEAD
     name: Backend: запуск тестів
     runs-on: ubuntu-latest
+=======
+    name: Backend запуск тестів
+    runs-on: ubuntu-latest        # Відступ 4 пробіли від 'backend-tests:'
+>>>>>>> 853045a (A)
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -31,7 +36,7 @@ jobs:
           pytest ../tests -q
 
   frontend-tests:
-    name: Frontend: перевірка доступності
+    name: Frontend перевірка доступності
     runs-on: ubuntu-latest
     needs: backend-tests
     steps:
