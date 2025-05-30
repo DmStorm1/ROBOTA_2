@@ -8,3 +8,4 @@ SOURCES    = [
   "https://espreso.tv/rss",
   "https://www.radiosvoboda.org/api/z-news/rss",
   "https://ukranews.com/rss/all_news.xml"]
+ROOM_ID = "2230"
