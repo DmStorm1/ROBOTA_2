@@ -69,5 +69,12 @@ jobs:
       - name: Build Docker image
         run: docker build -t test-image -f backend/Dockerfile .
 
-      - name: Run Docker container (optional)
-        run: docker run --rm test-image || exit 1
+      - name: Run Docker container and test
+        run: |
+          docker run -d -p 8000:8000 --name test_container test-image
+          echo "⏳ Очікуємо старт контейнера..."
+          sleep 5
+          echo "🔍 Перевіряємо відповідь сервера:"
+          curl -f http://localhost:8000 || (echo "❌ Сервер не відповідає" && docker logs test_container && exit 1)
+          echo "✅ Сервер відповідає! Зупиняємо контейнер."
+          docker stop test_container
